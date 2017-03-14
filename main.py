@@ -23,6 +23,11 @@ from protorpc import remote
 from endpoints_proto_datastore.ndb import EndpointsAliasProperty
 from endpoints_proto_datastore.ndb import EndpointsModel
 from endpoints_proto_datastore.ndb import EndpointsUserProperty
+from endpoints_proto_datastore.ndb import EndpointsDateProperty
+from endpoints_proto_datastore.ndb import EndpointsDateTimeProperty
+from datetime import date
+from datetime import datetime
+
 # class MainHandler(webapp2.RequestHandler):
 #     def get(self):
 #         self.response.write('Hello world!')
@@ -31,66 +36,370 @@ from endpoints_proto_datastore.ndb import EndpointsUserProperty
 #     ('/', MainHandler)
 # ], debug=True)
 
-class Task(EndpointsModel):
-    name = ndb.StringProperty(required=True)
-    stress_level = ndb.IntegerProperty(required=True)
-    difficulty = ndb.IntegerProperty(choices=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    time = ndb.DateTimeProperty(auto_now_add=True)
-    description = ndb.TextProperty()
-    owner = EndpointsUserProperty(required= True, raise_unauthorized= True)
-
-
 class Patient(EndpointsModel):
-    _message_fields_schema = ('id', 'user', 'address', 'medications', 'doctors',
-                              'diagnosis_codes', 'appointments', 'name', 'date_of_birth', 'age',
-                              'emergency_contacts', 'phone_number', 'insurance')
+#    _message_fields_schema = ('id', 'user', 'address', 'medications', 'doctors',
+ #                             'diagnosis_codes', 'appointments', 'name', 'date_of_birth', 'age',
+  #                            'emergency_contacts', 'phone_number', 'insurance')
+    name = ndb.StringProperty()
     user = EndpointsUserProperty(required=True, raise_unauthorized=True)
+    date_of_birth = EndpointsDateProperty()
+    age = ndb.IntegerProperty()
+
+    def calculate_age(self):
+        today = date.today()
+        birthday = self.date_of_birth
+        self.age = today.year - birthday.year - ((today.month, today.day) < (birthday.month , birthday.day))
+
+    def _pre_put_hook(self):
+        if self.date_of_birth:
+            self.calculate_age()
+
 
 
 class Address(EndpointsModel):
+    _message_fields_schema = ('id', 'street_line', 'city', 'state', 'zipcode')
+
     street_line = ndb.StringProperty()
     city = ndb.StringProperty()
     state = ndb.StringProperty()# TODO add dictionary with state abrivaitions
-    zipcode = ndb.IntegerProperty() # TODO add zip dictionary maybe optional statedeclarition
-    # TODO add parent and ID
+    zipcode = ndb.StringProperty()  # dont make int breaks TODO add zip dictionary maybe optional statedeclarition
+    # TODO add parent
     # TODO possibly add primary flag
+    # TODO geographically add address and vise versa
+
+
+class Drug(EndpointsModel):
+    _message_fields_schema = ('id', 'name', 'contradictions', 'dose_in_strength',
+                              'package', 'image', 'directions')
+    name = ndb.StringProperty()
+    contradictions= ndb.StringProperty(repeated=True)  # may need to move removed
+    dose_in_strength = ndb.StringProperty()
+    package = ndb.TextProperty()
+    image = ndb.BlobProperty()
+    directions = ndb.TextProperty()
 
 
 class Medication(EndpointsModel):
-    drug = ndb.StringProperty() # TODO consider making it a property or class
+    _message_fields_schema = ('id', 'drug', 'refill_date', 'dose_quantity',
+                              'count', 'lot_number', 'over_riding_directions')
+    drug = ndb.StructuredProperty(Drug)
     refill_date = ndb.DateProperty()
-    contradictions = ndb.TextProperty()
-    dose = ndb.StringProperty()# TODO combine with drug
+    dose_quantity = ndb.StringProperty()
     count = ndb.IntegerProperty()
+    over_riding_directions= ndb.TextProperty()
+    lot_number = ndb.StringProperty()
 
-class ICD10DiagnosisCode(EndpointsModel):
-    code_first_stem = ndb.StringProperty()# TODO convert codes in data so can search by value
-    code_second_stem = ndb.StringProperty()# TODO combine in alias property keep seperate for
-                                           #  more robust indexing(search for subcodes or global more esally)
+class PhoneNumber(EndpointsModel):
+    _message_fields_schema = ('id', 'area_code', 'primary', 'extension')
+    area_code = ndb.StringProperty()
+    primary = ndb.StringProperty()
+    extension = ndb.StringProperty()
 
 
-# TODO move modles and api to seperate files
+class DoctorStub(EndpointsModel):
+    _message_fields_schema = ('id','name', 'profession', 'picture', 'address_book',
+                              'number_book')
+    name = ndb.StringProperty()
+    profession = ndb.StringProperty()# TODO add allowable values
+    picture = ndb.BlobProperty(indexed=False) # TODO actually make work DONT FUCKING USE
+    address_book = ndb.StructuredProperty(Address, repeated=True)
+    number_book = ndb.StructuredProperty(PhoneNumber, repeated=True)
+
+class DiagnosisCode(EndpointsModel):
+    _message_fields_schema = ('id', 'code_first_stem', 'code_second_stem', 'code_type', 'description')
+    code_first_stem = ndb.StringProperty()  # TODO convert codes in data so can search by value
+    code_second_stem = ndb.StringProperty()  # TODO combine in alias property keep seperate for
+                                             # more robust indexing(search for subcodes or global more easily)
+    code_type = ndb.StringProperty(choices=['DSMIV', 'ICD10', 'ICD9'])
+    description = ndb.TextProperty()
+
+class Diagnosis(EndpointsModel):
+    _message_fields_schema = ('id', 'code', 'diagnosis_date', 'diagnosed_by')
+    code = ndb.StructuredProperty(DiagnosisCode)
+    diagnosis_date = ndb.DateProperty()
+    diagnosed_by = ndb.StructuredProperty(DoctorStub)
+
+
+
+class Appointment(EndpointsModel):
+    _message_fields_schema = ('id', 'appointment_date', 'appointment_time', 'location', 'with_whom')
+    appointment_date = ndb.DateProperty()
+    appointment_time = ndb.TimeProperty()
+    location = ndb.StructuredProperty(Address)
+    with_whom = ndb.StructuredProperty(DoctorStub)
+
+
+class InsurancePlan(EndpointsModel): # TODO expand InsurancePlan
+    _message_fields_schema = ('id', 'company', 'insurance_type')
+    company = ndb.StringProperty()
+    insurance_type = ndb.StringProperty()
+
+
+class Insurance(EndpointsModel):
+    _message_fields_schema = ('id', 'member_name', 'relation', 'member_id', 'group_number',
+                              'contract_type', 'plan')
+
+    member_name = ndb.StringProperty()
+    relation = ndb.StringProperty() # TODO add chocies
+    member_id = ndb.StringProperty()
+    group_number = ndb.StringProperty()
+    contract_type = ndb.StringProperty()
+    plan = ndb.StructuredProperty(InsurancePlan)
+
+
+
+# TODO class emergency_contact maybe just make list in user
+
+
+
+# TODO class provider
+
+
+
+
+# TODO move models and api to seperate files
 #################################################################
-@endpoints.api(name='tasks', version='vGDL',
-               description='API for task method')
-class TaskApi(remote.Service):
+@endpoints.api(name='patient', version='vGDL',
+               description='API for patient')
+class PatientApi(remote.Service):
 
-    @Task.method(
-                 request_fields=('name','stress_level', 'difficulty', 'description'), # forces customization? #must be tuple
-                 name = 'task.insert',
-                 path = 'task',
-                 http_method = 'POST')#this part is not needed as POST is default
-    def insert_task(self,task):
-        task.put()
-        return task
+    @Patient.method(
+                    request_fields=('name', 'date_of_birth'),
+                    name='patient.insert',
+                    path='patient',
+                    http_method='POST')
+    def insert_patient(self,patient):
+        if patient.date_of_birth: # TODO find a better way
+            if patient.date_of_birth.year <1900:
+                raise endpoints.BadRequestException('date <= 1900')
+        patient.put()
+        return endpoints.get_current_user()
 
-    @Task.query_method(user_required=True,
-                name = 'task.list',
-                 path = 'task',
-                use_projection=True,
-                 http_method = 'GET')#this part is not needed as GET is default
-    def list_tasks(self,query):
+    @Patient.query_method(user_required=True,
+                          query_fields=['name'],
+                          name='patient.query',
+                          path='patient')
+    def query_patient(self,query):
         return query
 
+
+#######################################################################################
+@endpoints.api(name='address', version='vGDL',
+               description='API for address')
+class AddressApi(remote.Service):
+
+    @Address.method(request_fields=('street_line', 'city', 'state', 'zipcode'),
+                    user_required=True,
+                    name='address.insert',
+                    path='address')
+    def insert_address(self,address):
+        address.put()
+        return address
+
+    @Address.query_method(user_required=True,
+                          query_fields=['street_line', 'city', 'state', 'zipcode'],
+                          name='address.query',
+                          path='address')
+    def query_address(self,query):
+        return query
+
+
+##############################################################################################
+@endpoints.api(name='appointment', version='vGDL',
+               description='API for appointment')
+class AppointmentApi(remote.Service):
+    @Appointment.method(request_fields=('appointment_date', 'appointment_time',
+                                        'location', 'with_whom'),
+                        user_required=True,
+                        name='insert',
+                        path='appointment')
+    def insert_appointment(self, address):
+        address.put()
+        return address
+
+    @Appointment.query_method(user_required=True,
+                              query_fields=['appointment_date', 'appointment_time'],
+                              name='query',
+                              path='appointment')
+    def query_appointment(self, query):
+        return query
+
+
+###############################################################################################
+@endpoints.api(name='medication', version='vGDL',
+               description='API for medication')
+class MedicationApi(remote.Service):
+    @Medication.method(request_fields=('drug', 'refill_date', 'dose_quantity',
+                                       'count', 'lot_number','over_riding_directions'),
+                       user_required=True,
+                       name='insert',
+                       path='medication')
+    def insert_medication(self, Medication):
+        Medication.put()
+        return Medication
+
+    @Medication.query_method(user_required=True,
+                             query_fields=['refill_date', 'dose_quantity', 'count', 'lot_number'],
+                             name='query',
+                             path='medication')
+    def query_medication(self, query):
+        return query
+
+
+ #################################################################################################
+
+@endpoints.api(name='drug', version='vGDL',
+               description='API for drug')
+class DrugApi(remote.Service):
+    @Drug.method(request_fields=('name', 'contradictions', 'dose_in_strength', 'package',
+                                 'image', 'directions'),
+                 user_required=True,
+                 name='insert',
+                 path='drug')
+    def insert_medication(self, Drug):
+        Drug.put()
+        return Drug
+
+    @Drug.query_method(user_required=True,
+                       query_fields=['name', 'contradictions', 'dose_in_strength'],
+                       name='query',
+                       path='drug')
+    def query_drug(self, query):
+        return query
+
+#############################################################################################
+
+
+@endpoints.api(name='diagnosis_code', version='vGDL',
+               description='API for diagnosis codes')
+class DiagnosisCodeApi(remote.Service):
+    @DiagnosisCode.method(request_fields=('code_first_stem', 'code_second_stem','code_type','description'),
+                          user_required=True,
+                          name='insert',
+                          path='diagnosis_code')
+    def insert_diagnosis_code(self, diagnosis_code):
+        diagnosis_code.put()
+        return diagnosis_code
+
+    @DiagnosisCode.query_method(user_required=True,
+                                query_fields=['code_first_stem', 'code_second_stem', 'code_type'],
+                                name='query',
+                                path='diagnosis_code')
+    def query_diagnosis_code(self, query):
+        return query
+
+#########################################################################################################
+
+
+@endpoints.api(name='diagnosis', version='vGDL',
+               description='API for diagnosis')
+class DiagnosisApi(remote.Service):
+    @Diagnosis.method(request_fields=('code', 'diagnosis_date', 'diagnosed_by'),
+                      user_required=True,
+                      name='insert',
+                      path='diagnosis')
+    def insert_diagnosis(self, diagnosis):
+        diagnosis.put()
+        return diagnosis
+
+    @Diagnosis.query_method(user_required=True,
+                            query_fields=['diagnosis_date'],
+                            name='query',
+                            path='diagnosis')
+    def query_diagnosis(self, query):
+        return query
+
+#########################################################################################################
+
+
+@endpoints.api(name='insurance', version='vGDL',
+               description='API for insurance')
+class InsuranceApi(remote.Service):
+    @Insurance.method(request_fields=('member_name', 'relation', 'member_id', 'group_number',
+                                      'contract_type', 'plan'),
+                      user_required=True,
+                      name='insert',
+                      path='insurance')
+    def insert_insurance(self, insurance):
+        insurance.put()
+        return insurance
+
+    @Insurance.query_method(user_required=True,
+                            query_fields=['member_name', 'relation', 'member_id', 'group_number',
+                                          'contract_type'],
+                            name='query',
+                            path='insurance')
+    def query_insurance(self, query):
+        return query
+
+
+#########################################################################################################
+
+
+@endpoints.api(name='insurance_plan', version='vGDL',
+               description='API for insurance plans')
+class InsurancePlanApi(remote.Service):
+    @InsurancePlan.method(request_fields=('company', 'insurance_type'),
+                          user_required=True,
+                          name='insert',
+                          path='insurance_plan')
+    def insert_insurance(self, insurance):
+        insurance.put()
+        return insurance
+
+    @InsurancePlan.query_method(user_required=True,
+                                query_fields=['company', 'insurance_type'],
+                                name='query',
+                                path='insurance_plan')
+    def query_insurance_plan(self, query):
+        return query
+
+
+#########################################################################################################
+
+
+@endpoints.api(name='phone_number', version='vGDL',
+               description='API for PhoneNumber')
+class PhoneNumberApi(remote.Service):
+    @PhoneNumber.method(request_fields=('area_code', 'primary', 'extension'),
+                        user_required=True,
+                        name='insert',
+                        path='phone_number')
+    def insert_phone_number(self, phone_number):
+        phone_number.put()
+        return phone_number
+
+    @PhoneNumber.query_method(user_required=True,
+                              query_fields=['area_code', 'primary', 'extension'],
+                              name='query',
+                              path='phone_number')
+    def query_phone_number(self, query):
+        return query
+
+
+#########################################################################################################
+
+@endpoints.api(name='doctor_stub', version='vGDL',
+               description='API for doctor_stub')
+class DoctorStubApi(remote.Service):
+    @DoctorStub.method(request_fields=('name', 'profession', 'picture', 'address_book',
+                                       'number_book'),
+                       user_required=True,
+                       name='insert',
+                       path='doctor_stub')
+    def insert_doctor_stub(self, doctor_stub):
+        doctor_stub.put()
+        return doctor_stub
+
+    @DoctorStub.query_method(user_required=True,
+                             query_fields=['name', 'profession'],
+                             name='query',
+                             path='doctor_stub')
+    def query_doctor_stub(self, query):
+        return query
+
+
 # creates aplication
-application = endpoints.api_server([TaskApi])
+application = endpoints.api_server([PatientApi, AddressApi, AppointmentApi, MedicationApi,
+                                    DrugApi, DiagnosisCodeApi, DiagnosisApi, InsuranceApi,
+                                    InsurancePlanApi, PhoneNumberApi, DoctorStubApi])
