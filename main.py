@@ -159,13 +159,16 @@ class Insurance(EndpointsModel):
 
 # TODO move models and api to seperate files
 #################################################################
-@endpoints.api(name='patient', version='vGDL',
-               description='API for patient')
+api_root = endpoints.api(name='api', version='vGDL',
+                        description='API for whole app')
+
+
+@api_root.api_class(resource_name="patient")
 class PatientApi(remote.Service):
 
     @Patient.method(
                     request_fields=('name', 'date_of_birth'),
-                    name='patient.insert',
+                    name='insert',
                     path='patient',
                     http_method='POST')
     def insert_patient(self,patient):
@@ -177,20 +180,19 @@ class PatientApi(remote.Service):
 
     @Patient.query_method(user_required=True,
                           query_fields=['name'],
-                          name='patient.query',
+                          name='query',
                           path='patient')
     def query_patient(self,query):
         return query
 
 
 #######################################################################################
-@endpoints.api(name='address', version='vGDL',
-               description='API for address')
+@api_root.api_class(resource_name="address")
 class AddressApi(remote.Service):
 
     @Address.method(request_fields=('street_line', 'city', 'state', 'zipcode'),
                     user_required=True,
-                    name='address.insert',
+                    name='insert',
                     path='address')
     def insert_address(self,address):
         address.put()
@@ -198,15 +200,14 @@ class AddressApi(remote.Service):
 
     @Address.query_method(user_required=True,
                           query_fields=['street_line', 'city', 'state', 'zipcode'],
-                          name='address.query',
+                          name='query',
                           path='address')
     def query_address(self,query):
         return query
 
 
 ##############################################################################################
-@endpoints.api(name='appointment', version='vGDL',
-               description='API for appointment')
+@api_root.api_class(resource_name="appointment")
 class AppointmentApi(remote.Service):
     @Appointment.method(request_fields=('appointment_date', 'appointment_time',
                                         'location', 'with_whom'),
@@ -226,8 +227,7 @@ class AppointmentApi(remote.Service):
 
 
 ###############################################################################################
-@endpoints.api(name='medication', version='vGDL',
-               description='API for medication')
+@api_root.api_class(resource_name="medication")
 class MedicationApi(remote.Service):
     @Medication.method(request_fields=('drug', 'refill_date', 'dose_quantity',
                                        'count', 'lot_number','over_riding_directions'),
@@ -248,8 +248,7 @@ class MedicationApi(remote.Service):
 
  #################################################################################################
 
-@endpoints.api(name='drug', version='vGDL',
-               description='API for drug')
+@api_root.api_class(resource_name="drug")
 class DrugApi(remote.Service):
     @Drug.method(request_fields=('name', 'contradictions', 'dose_in_strength', 'package',
                                  'image', 'directions'),
@@ -270,8 +269,7 @@ class DrugApi(remote.Service):
 #############################################################################################
 
 
-@endpoints.api(name='diagnosis_code', version='vGDL',
-               description='API for diagnosis codes')
+@api_root.api_class(resource_name="diagnosis_code")
 class DiagnosisCodeApi(remote.Service):
     @DiagnosisCode.method(request_fields=('code_first_stem', 'code_second_stem','code_type','description'),
                           user_required=True,
@@ -291,8 +289,7 @@ class DiagnosisCodeApi(remote.Service):
 #########################################################################################################
 
 
-@endpoints.api(name='diagnosis', version='vGDL',
-               description='API for diagnosis')
+@api_root.api_class(resource_name="diagnosis")
 class DiagnosisApi(remote.Service):
     @Diagnosis.method(request_fields=('code', 'diagnosis_date', 'diagnosed_by'),
                       user_required=True,
@@ -312,8 +309,7 @@ class DiagnosisApi(remote.Service):
 #########################################################################################################
 
 
-@endpoints.api(name='insurance', version='vGDL',
-               description='API for insurance')
+@api_root.api_class(resource_name="insurance")
 class InsuranceApi(remote.Service):
     @Insurance.method(request_fields=('member_name', 'relation', 'member_id', 'group_number',
                                       'contract_type', 'plan'),
@@ -336,8 +332,7 @@ class InsuranceApi(remote.Service):
 #########################################################################################################
 
 
-@endpoints.api(name='insurance_plan', version='vGDL',
-               description='API for insurance plans')
+@api_root.api_class(resource_name="insurance_plan")
 class InsurancePlanApi(remote.Service):
     @InsurancePlan.method(request_fields=('company', 'insurance_type'),
                           user_required=True,
@@ -358,8 +353,7 @@ class InsurancePlanApi(remote.Service):
 #########################################################################################################
 
 
-@endpoints.api(name='phone_number', version='vGDL',
-               description='API for PhoneNumber')
+@api_root.api_class(resource_name="phone_number")
 class PhoneNumberApi(remote.Service):
     @PhoneNumber.method(request_fields=('area_code', 'primary', 'extension'),
                         user_required=True,
@@ -379,8 +373,7 @@ class PhoneNumberApi(remote.Service):
 
 #########################################################################################################
 
-@endpoints.api(name='doctor_stub', version='vGDL',
-               description='API for doctor_stub')
+@api_root.api_class(resource_name="doctor_stub")
 class DoctorStubApi(remote.Service):
     @DoctorStub.method(request_fields=('name', 'profession', 'picture', 'address_book',
                                        'number_book'),
@@ -400,6 +393,4 @@ class DoctorStubApi(remote.Service):
 
 
 # creates aplication
-application = endpoints.api_server([PatientApi, AddressApi, AppointmentApi, MedicationApi,
-                                    DrugApi, DiagnosisCodeApi, DiagnosisApi, InsuranceApi,
-                                    InsurancePlanApi, PhoneNumberApi, DoctorStubApi])
+application = endpoints.api_server([api_root], restricted=False)
