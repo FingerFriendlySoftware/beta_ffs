@@ -37,9 +37,6 @@ from datetime import datetime
 # ], debug=True)
 
 class Patient(EndpointsModel):
-#    _message_fields_schema = ('id', 'user', 'address', 'medications', 'doctors',
- #                             'diagnosis_codes', 'appointments', 'name', 'date_of_birth', 'age',
-  #                            'emergency_contacts', 'phone_number', 'insurance')
     name = ndb.StringProperty()
     user = EndpointsUserProperty(required=True, raise_unauthorized=True)
     date_of_birth = EndpointsDateProperty()
@@ -169,14 +166,13 @@ class PatientApi(remote.Service):
     @Patient.method(
                     request_fields=('name', 'date_of_birth'),
                     name='insert',
-                    path='patient',
-                    http_method='POST')
+                    path='patient')
     def insert_patient(self,patient):
         if patient.date_of_birth: # TODO find a better way
             if patient.date_of_birth.year <1900:
                 raise endpoints.BadRequestException('date <= 1900')
         patient.put()
-        return endpoints.get_current_user()
+        return patient
 
     @Patient.query_method(user_required=True,
                           query_fields=['name'],
