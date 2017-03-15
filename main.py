@@ -24,7 +24,6 @@ from endpoints_proto_datastore.ndb import EndpointsAliasProperty
 from endpoints_proto_datastore.ndb import EndpointsModel
 from endpoints_proto_datastore.ndb import EndpointsUserProperty
 from endpoints_proto_datastore.ndb import EndpointsDateProperty
-from endpoints_proto_datastore.ndb import EndpointsDateTimeProperty
 from datetime import date
 from datetime import datetime
 
@@ -156,16 +155,14 @@ class Insurance(EndpointsModel):
 
 # TODO move models and api to seperate files
 #################################################################
-api_root = endpoints.api(name='api', version='vGDL',
-                        description='API for whole app')
 
 
-@api_root.api_class(resource_name="patient")
-class PatientApi(remote.Service):
 
+@endpoints.api(name='library', version='v1.0')
+class LibraryApi(remote.Service):
     @Patient.method(
                     request_fields=('name', 'date_of_birth'),
-                    name='insert',
+                    name='patient.insert',
                     path='patient')
     def insert_patient(self,patient):
         if patient.date_of_birth: # TODO find a better way
@@ -176,19 +173,17 @@ class PatientApi(remote.Service):
 
     @Patient.query_method(user_required=True,
                           query_fields=['name'],
-                          name='query',
+                          name='patient.query',
                           path='patient')
     def query_patient(self,query):
         return query
 
 
 #######################################################################################
-@api_root.api_class(resource_name="address")
-class AddressApi(remote.Service):
 
     @Address.method(request_fields=('street_line', 'city', 'state', 'zipcode'),
                     user_required=True,
-                    name='insert',
+                    name='address.insert',
                     path='address')
     def insert_address(self,address):
         address.put()
@@ -196,19 +191,17 @@ class AddressApi(remote.Service):
 
     @Address.query_method(user_required=True,
                           query_fields=['street_line', 'city', 'state', 'zipcode'],
-                          name='query',
+                          name='address.query',
                           path='address')
     def query_address(self,query):
         return query
 
 
 ##############################################################################################
-@api_root.api_class(resource_name="appointment")
-class AppointmentApi(remote.Service):
     @Appointment.method(request_fields=('appointment_date', 'appointment_time',
                                         'location', 'with_whom'),
                         user_required=True,
-                        name='insert',
+                        name='appointment.insert',
                         path='appointment')
     def insert_appointment(self, address):
         address.put()
@@ -216,19 +209,17 @@ class AppointmentApi(remote.Service):
 
     @Appointment.query_method(user_required=True,
                               query_fields=['appointment_date', 'appointment_time'],
-                              name='query',
+                              name='appointment.query',
                               path='appointment')
     def query_appointment(self, query):
         return query
 
 
 ###############################################################################################
-@api_root.api_class(resource_name="medication")
-class MedicationApi(remote.Service):
     @Medication.method(request_fields=('drug', 'refill_date', 'dose_quantity',
                                        'count', 'lot_number','over_riding_directions'),
                        user_required=True,
-                       name='insert',
+                       name='medication.insert',
                        path='medication')
     def insert_medication(self, Medication):
         Medication.put()
@@ -244,12 +235,10 @@ class MedicationApi(remote.Service):
 
  #################################################################################################
 
-@api_root.api_class(resource_name="drug")
-class DrugApi(remote.Service):
     @Drug.method(request_fields=('name', 'contradictions', 'dose_in_strength', 'package',
                                  'image', 'directions'),
                  user_required=True,
-                 name='insert',
+                 name='drug.insert',
                  path='drug')
     def insert_medication(self, Drug):
         Drug.put()
@@ -257,19 +246,16 @@ class DrugApi(remote.Service):
 
     @Drug.query_method(user_required=True,
                        query_fields=['name', 'contradictions', 'dose_in_strength'],
-                       name='query',
+                       name='drug.query',
                        path='drug')
     def query_drug(self, query):
         return query
 
 #############################################################################################
 
-
-@api_root.api_class(resource_name="diagnosis_code")
-class DiagnosisCodeApi(remote.Service):
     @DiagnosisCode.method(request_fields=('code_first_stem', 'code_second_stem','code_type','description'),
                           user_required=True,
-                          name='insert',
+                          name='diagnosis_code.insert',
                           path='diagnosis_code')
     def insert_diagnosis_code(self, diagnosis_code):
         diagnosis_code.put()
@@ -277,19 +263,16 @@ class DiagnosisCodeApi(remote.Service):
 
     @DiagnosisCode.query_method(user_required=True,
                                 query_fields=['code_first_stem', 'code_second_stem', 'code_type'],
-                                name='query',
+                                name='diagnosis_code.query',
                                 path='diagnosis_code')
     def query_diagnosis_code(self, query):
         return query
 
 #########################################################################################################
 
-
-@api_root.api_class(resource_name="diagnosis")
-class DiagnosisApi(remote.Service):
     @Diagnosis.method(request_fields=('code', 'diagnosis_date', 'diagnosed_by'),
                       user_required=True,
-                      name='insert',
+                      name='diagnosis.insert',
                       path='diagnosis')
     def insert_diagnosis(self, diagnosis):
         diagnosis.put()
@@ -297,20 +280,17 @@ class DiagnosisApi(remote.Service):
 
     @Diagnosis.query_method(user_required=True,
                             query_fields=['diagnosis_date'],
-                            name='query',
+                            name='diagnosis.query',
                             path='diagnosis')
     def query_diagnosis(self, query):
         return query
 
 #########################################################################################################
 
-
-@api_root.api_class(resource_name="insurance")
-class InsuranceApi(remote.Service):
     @Insurance.method(request_fields=('member_name', 'relation', 'member_id', 'group_number',
                                       'contract_type', 'plan'),
                       user_required=True,
-                      name='insert',
+                      name='insurance.insert',
                       path='insurance')
     def insert_insurance(self, insurance):
         insurance.put()
@@ -319,7 +299,7 @@ class InsuranceApi(remote.Service):
     @Insurance.query_method(user_required=True,
                             query_fields=['member_name', 'relation', 'member_id', 'group_number',
                                           'contract_type'],
-                            name='query',
+                            name='insurance.query',
                             path='insurance')
     def query_insurance(self, query):
         return query
@@ -327,12 +307,9 @@ class InsuranceApi(remote.Service):
 
 #########################################################################################################
 
-
-@api_root.api_class(resource_name="insurance_plan")
-class InsurancePlanApi(remote.Service):
     @InsurancePlan.method(request_fields=('company', 'insurance_type'),
                           user_required=True,
-                          name='insert',
+                          name='insurance_plan.insert',
                           path='insurance_plan')
     def insert_insurance(self, insurance):
         insurance.put()
@@ -340,7 +317,7 @@ class InsurancePlanApi(remote.Service):
 
     @InsurancePlan.query_method(user_required=True,
                                 query_fields=['company', 'insurance_type'],
-                                name='query',
+                                name='insurance_plan.query',
                                 path='insurance_plan')
     def query_insurance_plan(self, query):
         return query
@@ -348,12 +325,9 @@ class InsurancePlanApi(remote.Service):
 
 #########################################################################################################
 
-
-@api_root.api_class(resource_name="phone_number")
-class PhoneNumberApi(remote.Service):
     @PhoneNumber.method(request_fields=('area_code', 'primary', 'extension'),
                         user_required=True,
-                        name='insert',
+                        name='phone_number.insert',
                         path='phone_number')
     def insert_phone_number(self, phone_number):
         phone_number.put()
@@ -361,7 +335,7 @@ class PhoneNumberApi(remote.Service):
 
     @PhoneNumber.query_method(user_required=True,
                               query_fields=['area_code', 'primary', 'extension'],
-                              name='query',
+                              name='phone_number.query',
                               path='phone_number')
     def query_phone_number(self, query):
         return query
@@ -369,12 +343,10 @@ class PhoneNumberApi(remote.Service):
 
 #########################################################################################################
 
-@api_root.api_class(resource_name="doctor_stub")
-class DoctorStubApi(remote.Service):
     @DoctorStub.method(request_fields=('name', 'profession', 'picture', 'address_book',
                                        'number_book'),
                        user_required=True,
-                       name='insert',
+                       name='doctor_stub.insert',
                        path='doctor_stub')
     def insert_doctor_stub(self, doctor_stub):
         doctor_stub.put()
@@ -382,11 +354,13 @@ class DoctorStubApi(remote.Service):
 
     @DoctorStub.query_method(user_required=True,
                              query_fields=['name', 'profession'],
-                             name='query',
+                             name='doctor_stub.query',
                              path='doctor_stub')
     def query_doctor_stub(self, query):
         return query
 
 
 # creates aplication
-application = endpoints.api_server([api_root], restricted=False)
+temp= endpoints.api_server([LibraryApi], restricted=False)
+
+application = temp
