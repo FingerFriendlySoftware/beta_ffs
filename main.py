@@ -158,7 +158,9 @@ class Insurance(EndpointsModel):
 
 
 
-@endpoints.api(name='library', version='v1.0')
+@endpoints.api(name='library', version='v1.0',
+               allowed_client_ids=('237046111297-f7jpslg152jqau9alqkvmkpfqilkv4qr',),
+               audiences=['237046111297-f7jpslg152jqau9alqkvmkpfqilkv4qr.apps.googleusercontent.com',])
 class LibraryApi(remote.Service):
     @Patient.method(
                     request_fields=('name', 'date_of_birth'),
@@ -227,7 +229,7 @@ class LibraryApi(remote.Service):
 
     @Medication.query_method(user_required=True,
                              query_fields=['refill_date', 'dose_quantity', 'count', 'lot_number'],
-                             name='query',
+                             name='medicationquery',
                              path='medication')
     def query_medication(self, query):
         return query
@@ -240,7 +242,7 @@ class LibraryApi(remote.Service):
                  user_required=True,
                  name='drug.insert',
                  path='drug')
-    def insert_medication(self, Drug):
+    def insert_drug(self, Drug):
         Drug.put()
         return Drug
 
