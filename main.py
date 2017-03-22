@@ -159,8 +159,9 @@ class Insurance(EndpointsModel):
 
 
 @endpoints.api(name='library', version='v1.0',
-               allowed_client_ids=('237046111297-f7jpslg152jqau9alqkvmkpfqilkv4qr',),
-               audiences=['237046111297-f7jpslg152jqau9alqkvmkpfqilkv4qr.apps.googleusercontent.com',])
+               allowed_client_ids=['237046111297-qjcbjpflto2gvnsnablpj8hmrde8c5vb.apps.googleusercontent.com',
+                '237046111297-m1gfp5uc7gn065k8eqt5rj44bq5ho215.apps.googleusercontent.com'],
+               audiences=['237046111297-qjcbjpflto2gvnsnablpj8hmrde8c5vb.apps.googleusercontent.com'])
 class LibraryApi(remote.Service):
     @Patient.method(
                     request_fields=('name', 'date_of_birth'),
@@ -191,7 +192,8 @@ class LibraryApi(remote.Service):
         address.put()
         return address
 
-    @Address.query_method(user_required=True,
+    @Address.query_method(
+      user_required=True,
                           query_fields=['street_line', 'city', 'state', 'zipcode'],
                           name='address.query',
                           path='address')
